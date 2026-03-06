@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Item del historial de inversiones -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:background="@android:color/white"
+    android:padding="14dp"
+    android:layout_margin="4dp"
+    android:elevation="1dp">
+
+    <!-- Icono -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="📈"
+        android:textSize="24sp"
+        android:layout_marginEnd="12dp"
+        android:gravity="center_vertical"/>
+
+    <!-- Info de la inversión -->
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/tvNombreProyecto"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Nombre del proyecto"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:textColor="#212121"/>
+
+        <TextView
+            android:id="@+id/tvFecha"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="2024-01-01"
+            android:textSize="12sp"
+            android:textColor="#9E9E9E"/>
+    </LinearLayout>
+
+    <!-- Cantidad -->
+    <TextView
+        android:id="@+id/tvCantidad"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="100 Aurus"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:textColor="#FFA000"
+        android:gravity="center_vertical"/>
+
+</LinearLayout>

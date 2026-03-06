@@ -1,0 +1,124 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Detalle de un proyecto y formulario de inversión -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="#F5F5F5">
+
+    <!-- Nombre del proyecto -->
+    <TextView
+        android:id="@+id/tvNombre"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Nombre del Proyecto"
+        android:textSize="24sp"
+        android:textStyle="bold"
+        android:textColor="#1565C0"
+        android:layout_marginBottom="8dp"/>
+
+    <!-- Descripción -->
+    <TextView
+        android:id="@+id/tvDescripcion"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Descripción del proyecto"
+        android:textSize="15sp"
+        android:textColor="#616161"
+        android:layout_marginBottom="20dp"/>
+
+    <!-- Estado -->
+    <TextView
+        android:id="@+id/tvEstado"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Estado: ACTIVO"
+        android:textSize="14sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="16dp"/>
+
+    <!-- Barra de progreso + porcentaje -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="4dp">
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="0dp"
+            android:layout_height="20dp"
+            android:layout_weight="1"
+            android:max="100"
+            android:progress="0"/>
+
+        <TextView
+            android:id="@+id/tvPorcentaje"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0%"
+            android:textSize="14sp"
+            android:textColor="#424242"
+            android:layout_marginStart="8dp"/>
+    </LinearLayout>
+
+    <!-- Objetivo -->
+    <TextView
+        android:id="@+id/tvObjetivo"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Objetivo: 0 Aurus"
+        android:textSize="15sp"
+        android:textColor="#424242"
+        android:layout_marginTop="8dp"/>
+
+    <!-- Actual -->
+    <TextView
+        android:id="@+id/tvActual"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="Invertido: 0 Aurus"
+        android:textSize="15sp"
+        android:textColor="#2E7D32"
+        android:textStyle="bold"
+        android:layout_marginBottom="32dp"/>
+
+    <!-- Separador visual -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="#BDBDBD"
+        android:layout_marginBottom="20dp"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Invertir en este proyecto"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:textColor="#424242"
+        android:layout_marginBottom="8dp"/>
+
+    <!-- Campo: cantidad a invertir -->
+    <EditText
+        android:id="@+id/etCantidad"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="Cantidad de Aurus"
+        android:inputType="numberDecimal"
+        android:background="@android:drawable/edit_text"
+        android:padding="8dp"
+        android:layout_marginBottom="16dp"/>
+
+    <!-- Botón invertir -->
+    <Button
+        android:id="@+id/btnInvertir"
+        android:layout_width="match_parent"
+        android:layout_height="56dp"
+        android:text="Invertir Aurus"
+        android:textSize="16sp"
+        android:backgroundTint="#1565C0"/>
+
+</LinearLayout>
