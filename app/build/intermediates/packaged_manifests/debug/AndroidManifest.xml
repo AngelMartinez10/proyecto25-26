@@ -8,6 +8,8 @@
         android:minSdkVersion="24"
         android:targetSdkVersion="34" />
 
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <permission
         android:name="com.novacapital.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
         android:protectionLevel="signature" />
@@ -19,16 +21,15 @@
         android:appComponentFactory="androidx.core.app.CoreComponentFactory"
         android:debuggable="true"
         android:extractNativeLibs="false"
-        android:icon="@mipmap/ic_launcher"
         android:label="Nova Capital"
-        android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:testOnly="true"
-        android:theme="@style/Theme.NovaCapital" >
+        android:theme="@style/Theme.AppCompat.Light.DarkActionBar"
+        android:usesCleartextTraffic="true" >
 
-        <!-- Pantalla principal -->
+        <!-- LoginActivity es la pantalla de inicio -->
         <activity
-            android:name="com.novacapital.activities.MainActivity"
+            android:name="com.novacapital.activities.LoginActivity"
             android:exported="true" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -36,25 +37,26 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <!-- Lista de proyectos -->
-        <activity android:name="com.novacapital.activities.ListaProyectosActivity" />
-
-        <!-- Crear proyecto -->
-        <activity android:name="com.novacapital.activities.CrearProyectoActivity" />
-
-        <!-- Detalle de proyecto -->
-        <activity android:name="com.novacapital.activities.DetalleProyectoActivity" />
-
-        <!-- Perfil del usuario -->
-        <activity android:name="com.novacapital.activities.PerfilActivity" />
-
-        <!-- Retos -->
-        <activity android:name="com.novacapital.activities.RetosActivity" />
-
-        <service
-            android:name="androidx.room.MultiInstanceInvalidationService"
-            android:directBootAware="true"
+        <activity
+            android:name="com.novacapital.activities.RegistroActivity"
+            android:exported="false" />
+        <activity
+            android:name="com.novacapital.activities.MainActivity"
+            android:exported="false" />
+        <activity
+            android:name="com.novacapital.activities.ListaProyectosActivity"
+            android:exported="false" />
+        <activity
+            android:name="com.novacapital.activities.DetalleProyectoActivity"
+            android:exported="false" />
+        <activity
+            android:name="com.novacapital.activities.CrearProyectoActivity"
+            android:exported="false" />
+        <activity
+            android:name="com.novacapital.activities.PerfilActivity"
+            android:exported="false" />
+        <activity
+            android:name="com.novacapital.activities.RetosActivity"
             android:exported="false" />
 
         <provider

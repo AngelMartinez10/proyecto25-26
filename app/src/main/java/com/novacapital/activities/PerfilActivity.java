@@ -2,38 +2,30 @@ package com.novacapital.activities;
 
 import android.os.Bundle;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.novacapital.R;
-import com.novacapital.adapters.InversionAdapter;
-import com.novacapital.database.AppDatabase;
-import com.novacapital.models.Inversion;
-import com.novacapital.models.Usuario;
+import com.novacapital.adapters.InversionApiAdapter;
+import com.novacapital.api.ApiClient;
+import com.novacapital.api.ApiService;
+import com.novacapital.models.ClienteResponse;
+import com.novacapital.models.InversionResponse;
+import com.novacapital.utils.SessionManager;
 
 import java.util.List;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
-/**
- * PerfilActivity - Muestra el perfil del usuario y su historial de inversiones.
- *
- * Información mostrada:
- * - Nombre del usuario
- * - Saldo actual de Aurus
- * - Número total de inversiones realizadas
- * - Número de proyectos creados
- * - Lista del historial de inversiones
- */
 public class PerfilActivity extends AppCompatActivity {
 
-    private TextView tvNombreUsuario;
-    private TextView tvSaldoAurus;
-    private TextView tvNumInversiones;
-    private TextView tvNumProyectos;
+    private TextView tvNombreUsuario, tvSaldoAurus, tvNumInversiones;
     private RecyclerView recyclerHistorial;
-
-    private AppDatabase db;
+    private SessionManager sessionManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,50 +37,58 @@ public class PerfilActivity extends AppCompatActivity {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         }
 
-        // Enlazar vistas
-        tvNombreUsuario = findViewById(R.id.tvNombreUsuario);
-        tvSaldoAurus = findViewById(R.id.tvSaldoAurus);
+        tvNombreUsuario  = findViewById(R.id.tvNombreUsuario);
+        tvSaldoAurus     = findViewById(R.id.tvSaldoAurus);
         tvNumInversiones = findViewById(R.id.tvNumInversiones);
-        tvNumProyectos = findViewById(R.id.tvNumProyectos);
         recyclerHistorial = findViewById(R.id.recyclerHistorial);
-
         recyclerHistorial.setLayoutManager(new LinearLayoutManager(this));
 
-        db = AppDatabase.getInstance(this);
+        sessionManager = new SessionManager(this);
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         cargarPerfil();
+        cargarHistorial();
     }
 
-    /**
-     * Carga y muestra los datos del usuario y su historial.
-     */
     private void cargarPerfil() {
-        Usuario usuario = db.usuarioDao().obtenerUsuario();
+        ApiService api = ApiClient.getService(ApiService.class, sessionManager.getToken());
+        api.miPerfil().enqueue(new Callback<ClienteResponse>() {
+            @Override
+            public void onResponse(Call<ClienteResponse> call, Response<ClienteResponse> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    ClienteResponse cliente = response.body();
+                    tvNombreUsuario.setText(cliente.getNombre() + " " + cliente.getApellidos());
+                    tvSaldoAurus.setText(cliente.getSaldoAurus() + " Aurus");
+                }
+            }
+            @Override
+            public void onFailure(Call<ClienteResponse> call, Throwable t) { }
+        });
+    }
 
-        if (usuario != null) {
-            tvNombreUsuario.setText(usuario.getNombre());
-            tvSaldoAurus.setText(usuario.getSaldoAurus() + " Aurus");
-        }
-
-        // Estadísticas
-        int numInversiones = db.inversionDao().contarInversiones();
-        int numProyectos = db.proyectoDao().contarProyectos();
-        tvNumInversiones.setText("Inversiones realizadas: " + numInversiones);
-        tvNumProyectos.setText("Proyectos creados: " + numProyectos);
-
-        // Historial de inversiones
-        List<Inversion> historial = db.inversionDao().obtenerTodas();
-        InversionAdapter adapter = new InversionAdapter(historial, db.proyectoDao());
-        recyclerHistorial.setAdapter(adapter);
+    private void cargarHistorial() {
+        ApiService api = ApiClient.getService(ApiService.class, sessionManager.getToken());
+        api.misInversiones().enqueue(new Callback<List<InversionResponse>>() {
+            @Override
+            public void onResponse(Call<List<InversionResponse>> call,
+                                   Response<List<InversionResponse>> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    List<InversionResponse> historial = response.body();
+                    tvNumInversiones.setText("Inversiones realizadas: " + historial.size());
+                    recyclerHistorial.setAdapter(new InversionApiAdapter(historial));
+                }
+            }
+            @Override
+            public void onFailure(Call<List<InversionResponse>> call, Throwable t) {
+                Toast.makeText(PerfilActivity.this,
+                        "Error al cargar historial", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     @Override
-    public boolean onSupportNavigateUp() {
-        finish();
-        return true;
-    }
+    public boolean onSupportNavigateUp() { finish(); return true; }
 }

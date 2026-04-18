@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.novacapital.app-mergeDebugResources-33:/values-te/values-te.xml",
+            "outputFile": "com.novacapital.app-mergeDebugResources-30:/values-te/values-te.xml",
             "map": [
                 {
                     "source": "C:\\Users\\angel\\.gradle\\caches\\8.10\\transforms\\448229d016c994b93f2927e1c0a87521\\transformed\\core-1.9.0\\res\\values-te\\values-te.xml",

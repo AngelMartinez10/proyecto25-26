@@ -11,43 +11,28 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.novacapital.R;
-import com.novacapital.database.AppDatabase;
-import com.novacapital.models.Inversion;
-import com.novacapital.models.Proyecto;
-import com.novacapital.models.Reto;
-import com.novacapital.models.Usuario;
+import com.novacapital.api.ApiClient;
+import com.novacapital.api.ApiService;
+import com.novacapital.models.InversionRequest;
+import com.novacapital.models.InversionResponse;
+import com.novacapital.models.ProyectoResponse;
+import com.novacapital.utils.SessionManager;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
+import java.math.BigDecimal;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
 
-/**
- * DetalleProyectoActivity - Muestra los detalles de un proyecto y permite invertir.
- *
- * Recibe el ID del proyecto por Intent.
- * Al invertir:
- *   1. Descuenta Aurus del usuario
- *   2. Suma al proyecto
- *   3. Si llega al objetivo, cambia estado a FINANCIADO
- *   4. Comprueba retos
- */
 public class DetalleProyectoActivity extends AppCompatActivity {
 
-    // Vistas de información del proyecto
-    private TextView tvNombre;
-    private TextView tvDescripcion;
-    private TextView tvObjetivo;
-    private TextView tvActual;
-    private TextView tvEstado;
-    private TextView tvPorcentaje;
+    private TextView tvNombre, tvDescripcion, tvObjetivo, tvActual, tvEstado, tvPorcentaje;
     private ProgressBar progressBar;
-
-    // Inversión
     private EditText etCantidad;
     private Button btnInvertir;
 
-    private AppDatabase db;
-    private Proyecto proyecto;
+    private SessionManager sessionManager;
+    private ProyectoResponse proyecto;
+    private int idProyecto;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -59,57 +44,63 @@ public class DetalleProyectoActivity extends AppCompatActivity {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         }
 
-        // Enlazar vistas
-        tvNombre = findViewById(R.id.tvNombre);
+        tvNombre      = findViewById(R.id.tvNombre);
         tvDescripcion = findViewById(R.id.tvDescripcion);
-        tvObjetivo = findViewById(R.id.tvObjetivo);
-        tvActual = findViewById(R.id.tvActual);
-        tvEstado = findViewById(R.id.tvEstado);
-        tvPorcentaje = findViewById(R.id.tvPorcentaje);
-        progressBar = findViewById(R.id.progressBar);
-        etCantidad = findViewById(R.id.etCantidad);
-        btnInvertir = findViewById(R.id.btnInvertir);
+        tvObjetivo    = findViewById(R.id.tvObjetivo);
+        tvActual      = findViewById(R.id.tvActual);
+        tvEstado      = findViewById(R.id.tvEstado);
+        tvPorcentaje  = findViewById(R.id.tvPorcentaje);
+        progressBar   = findViewById(R.id.progressBar);
+        etCantidad    = findViewById(R.id.etCantidad);
+        btnInvertir   = findViewById(R.id.btnInvertir);
 
-        db = AppDatabase.getInstance(this);
+        sessionManager = new SessionManager(this);
 
-        // Obtener el ID del proyecto pasado por Intent
-        int idProyecto = getIntent().getIntExtra("idProyecto", -1);
+        idProyecto = getIntent().getIntExtra("idProyecto", -1);
         if (idProyecto == -1) {
             Toast.makeText(this, "Error: proyecto no encontrado", Toast.LENGTH_SHORT).show();
             finish();
             return;
         }
 
-        // Cargar el proyecto de la BD
-        proyecto = db.proyectoDao().obtenerPorId(idProyecto);
-        mostrarDatosProyecto();
-
-        // Acción al pulsar "Invertir"
+        cargarProyecto();
         btnInvertir.setOnClickListener(v -> realizarInversion());
     }
 
-    /**
-     * Muestra todos los datos del proyecto en pantalla.
-     */
+    private void cargarProyecto() {
+        ApiService api = ApiClient.getService(ApiService.class, sessionManager.getToken());
+        api.obtenerProyecto(idProyecto).enqueue(new Callback<ProyectoResponse>() {
+            @Override
+            public void onResponse(Call<ProyectoResponse> call, Response<ProyectoResponse> response) {
+                if (response.isSuccessful() && response.body() != null) {
+                    proyecto = response.body();
+                    mostrarDatosProyecto();
+                }
+            }
+            @Override
+            public void onFailure(Call<ProyectoResponse> call, Throwable t) {
+                Toast.makeText(DetalleProyectoActivity.this,
+                        "Error al cargar el proyecto", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
     private void mostrarDatosProyecto() {
         tvNombre.setText(proyecto.getNombre());
         tvDescripcion.setText(proyecto.getDescripcion());
-        tvObjetivo.setText("Objetivo: " + proyecto.getInversionObjetivo() + " Aurus");
-        tvActual.setText("Invertido: " + proyecto.getInversionActual() + " Aurus");
+        tvObjetivo.setText("Objetivo: " + proyecto.getObjetivoInversion() + " Aurus");
+        tvActual.setText("Invertido: " + proyecto.getCantidadActual() + " Aurus");
         tvEstado.setText("Estado: " + proyecto.getEstado());
-        tvPorcentaje.setText(proyecto.getPorcentajeFinanciacion() + "%");
-        progressBar.setProgress(proyecto.getPorcentajeFinanciacion());
+        int pct = proyecto.getPorcentajeFinanciacion();
+        tvPorcentaje.setText(pct + "%");
+        progressBar.setProgress(pct);
 
-        // Si el proyecto está financiado, deshabilitar el botón
         if ("FINANCIADO".equals(proyecto.getEstado())) {
             btnInvertir.setEnabled(false);
             btnInvertir.setText("Proyecto Financiado ✓");
         }
     }
 
-    /**
-     * Procesa la inversión del usuario en este proyecto.
-     */
     private void realizarInversion() {
         String cantidadStr = etCantidad.getText().toString().trim();
 
@@ -118,10 +109,10 @@ public class DetalleProyectoActivity extends AppCompatActivity {
             return;
         }
 
-        double cantidad;
+        BigDecimal cantidad;
         try {
-            cantidad = Double.parseDouble(cantidadStr);
-            if (cantidad <= 0) {
+            cantidad = new BigDecimal(cantidadStr);
+            if (cantidad.compareTo(BigDecimal.ZERO) <= 0) {
                 etCantidad.setError("La cantidad debe ser mayor que 0");
                 return;
             }
@@ -130,95 +121,35 @@ public class DetalleProyectoActivity extends AppCompatActivity {
             return;
         }
 
-        // Comprobar que el usuario tiene suficiente saldo
-        Usuario usuario = db.usuarioDao().obtenerUsuario();
-        if (usuario.getSaldoAurus() < cantidad) {
-            Toast.makeText(this, "Saldo insuficiente. Tienes " + usuario.getSaldoAurus() + " Aurus", Toast.LENGTH_LONG).show();
-            return;
-        }
-
-        // --- REALIZAR LA INVERSIÓN ---
-
-        // 1. Descontar Aurus del usuario
-        usuario.setSaldoAurus(usuario.getSaldoAurus() - cantidad);
-        db.usuarioDao().actualizar(usuario);
-
-        // 2. Sumar al proyecto
-        proyecto.setInversionActual(proyecto.getInversionActual() + cantidad);
-
-        // 3. Cambiar estado si se alcanzó el objetivo
-        if (proyecto.getInversionActual() >= proyecto.getInversionObjetivo()) {
-            proyecto.setEstado("FINANCIADO");
-            Toast.makeText(this, "🎉 ¡Proyecto financiado completamente!", Toast.LENGTH_LONG).show();
-            comprobarRetoFinanciar();
-        }
-        db.proyectoDao().actualizar(proyecto);
-
-        // 4. Guardar registro de inversión
-        String fecha = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
-        Inversion inversion = new Inversion(proyecto.getId(), cantidad, fecha);
-        db.inversionDao().insertar(inversion);
-
-        // 5. Comprobar retos de inversión
-        comprobarRetosInversion();
-
-        Toast.makeText(this, "Inversión realizada: " + cantidad + " Aurus", Toast.LENGTH_SHORT).show();
-
-        // Limpiar campo y actualizar pantalla
-        etCantidad.setText("");
-        mostrarDatosProyecto();
-    }
-
-    /**
-     * Comprueba retos relacionados con inversiones.
-     */
-    private void comprobarRetosInversion() {
-        // Reto 1: Invertir por primera vez (id=1)
-        if (db.inversionDao().contarInversiones() == 1) {
-            Reto reto = db.retoDao().obtenerPorId(1);
-            if (reto != null && !reto.isCompletado()) {
-                completarReto(reto);
-            }
-        }
-
-        // Reto 3: Invertir en 3 proyectos distintos (id=3)
-        if (db.inversionDao().contarProyectosInvertidos() >= 3) {
-            Reto reto = db.retoDao().obtenerPorId(3);
-            if (reto != null && !reto.isCompletado()) {
-                completarReto(reto);
-            }
-        }
-    }
-
-    /**
-     * Comprueba el reto de financiar un proyecto (id=4).
-     */
-    private void comprobarRetoFinanciar() {
-        Reto reto = db.retoDao().obtenerPorId(4);
-        if (reto != null && !reto.isCompletado()) {
-            completarReto(reto);
-        }
-    }
-
-    /**
-     * Marca un reto como completado y da la recompensa al usuario.
-     */
-    private void completarReto(Reto reto) {
-        reto.setCompletado(true);
-        db.retoDao().actualizar(reto);
-
-        Usuario usuario = db.usuarioDao().obtenerUsuario();
-        usuario.setSaldoAurus(usuario.getSaldoAurus() + reto.getRecompensa());
-        db.usuarioDao().actualizar(usuario);
-
-        Toast.makeText(this,
-            "🏆 Reto completado: +" + reto.getRecompensa() + " Aurus",
-            Toast.LENGTH_LONG).show();
+        ApiService api = ApiClient.getService(ApiService.class, sessionManager.getToken());
+        api.invertir(new InversionRequest(idProyecto, cantidad))
+                .enqueue(new Callback<InversionResponse>() {
+                    @Override
+                    public void onResponse(Call<InversionResponse> call,
+                                           Response<InversionResponse> response) {
+                        if (response.isSuccessful() && response.body() != null) {
+                            InversionResponse inv = response.body();
+                            Toast.makeText(DetalleProyectoActivity.this,
+                                    "Inversión realizada. Nuevo saldo: "
+                                            + inv.getNuevoSaldoAurus() + " Aurus",
+                                    Toast.LENGTH_LONG).show();
+                            etCantidad.setText("");
+                            // Refrescar datos del proyecto
+                            cargarProyecto();
+                        } else if (response.code() == 400) {
+                            Toast.makeText(DetalleProyectoActivity.this,
+                                    "Saldo insuficiente o proyecto no disponible",
+                                    Toast.LENGTH_LONG).show();
+                        }
+                    }
+                    @Override
+                    public void onFailure(Call<InversionResponse> call, Throwable t) {
+                        Toast.makeText(DetalleProyectoActivity.this,
+                                "Error de conexión", Toast.LENGTH_SHORT).show();
+                    }
+                });
     }
 
     @Override
-    public boolean onSupportNavigateUp() {
-        finish();
-        return true;
-    }
+    public boolean onSupportNavigateUp() { finish(); return true; }
 }

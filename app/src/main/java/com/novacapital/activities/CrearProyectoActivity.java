@@ -9,79 +9,58 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.novacapital.R;
-import com.novacapital.database.AppDatabase;
-import com.novacapital.models.Proyecto;
+import com.novacapital.api.ApiClient;
+import com.novacapital.api.ApiService;
+import com.novacapital.models.ProyectoRequest;
+import com.novacapital.models.ProyectoResponse;
+import com.novacapital.utils.SessionManager;
 
-/**
- * CrearProyectoActivity - Formulario para crear un nuevo proyecto de inversión.
- *
- * El usuario introduce:
- * - Nombre del proyecto
- * - Descripción
- * - Inversión objetivo (en Aurus)
- *
- * Al crear el proyecto, se comprueba el reto "Crear tu primer proyecto".
- */
+import java.math.BigDecimal;
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+
 public class CrearProyectoActivity extends AppCompatActivity {
 
-    // Campos del formulario
-    private EditText etNombre;
-    private EditText etDescripcion;
-    private EditText etObjetivo;
+    private EditText etNombre, etDescripcion, etCategoria, etObjetivo;
     private Button btnCrear;
-
-    private AppDatabase db;
+    private SessionManager sessionManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_crear_proyecto);
 
-        // Configurar barra
         if (getSupportActionBar() != null) {
             getSupportActionBar().setTitle("Crear Proyecto");
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
         }
 
-        // Enlazar vistas
-        etNombre = findViewById(R.id.etNombre);
+        etNombre      = findViewById(R.id.etNombre);
         etDescripcion = findViewById(R.id.etDescripcion);
-        etObjetivo = findViewById(R.id.etObjetivo);
-        btnCrear = findViewById(R.id.btnCrear);
+        etCategoria   = findViewById(R.id.etCategoria);
+        etObjetivo    = findViewById(R.id.etObjetivo);
+        btnCrear      = findViewById(R.id.btnCrear);
 
-        db = AppDatabase.getInstance(this);
+        sessionManager = new SessionManager(this);
 
-        // Acción al pulsar "Crear Proyecto"
         btnCrear.setOnClickListener(v -> crearProyecto());
     }
 
-    /**
-     * Valida los campos del formulario y crea el proyecto en la BD.
-     */
     private void crearProyecto() {
-        String nombre = etNombre.getText().toString().trim();
+        String nombre      = etNombre.getText().toString().trim();
         String descripcion = etDescripcion.getText().toString().trim();
+        String categoria   = etCategoria.getText().toString().trim();
         String objetivoStr = etObjetivo.getText().toString().trim();
 
-        // Validación: campos vacíos
-        if (TextUtils.isEmpty(nombre)) {
-            etNombre.setError("El nombre es obligatorio");
-            return;
-        }
-        if (TextUtils.isEmpty(descripcion)) {
-            etDescripcion.setError("La descripción es obligatoria");
-            return;
-        }
-        if (TextUtils.isEmpty(objetivoStr)) {
-            etObjetivo.setError("El objetivo de inversión es obligatorio");
-            return;
-        }
+        if (TextUtils.isEmpty(nombre))      { etNombre.setError("Campo obligatorio"); return; }
+        if (TextUtils.isEmpty(descripcion)) { etDescripcion.setError("Campo obligatorio"); return; }
+        if (TextUtils.isEmpty(objetivoStr)) { etObjetivo.setError("Campo obligatorio"); return; }
 
-        // Validación: objetivo mayor que 0
-        double objetivo;
+        BigDecimal objetivo;
         try {
-            objetivo = Double.parseDouble(objetivoStr);
-            if (objetivo <= 0) {
+            objetivo = new BigDecimal(objetivoStr);
+            if (objetivo.compareTo(BigDecimal.ZERO) <= 0) {
                 etObjetivo.setError("El objetivo debe ser mayor que 0");
                 return;
             }
@@ -90,47 +69,29 @@ public class CrearProyectoActivity extends AppCompatActivity {
             return;
         }
 
-        // Crear y guardar el proyecto
-        Proyecto nuevoProyecto = new Proyecto(nombre, descripcion, objetivo);
-        db.proyectoDao().insertar(nuevoProyecto);
-
-        // Comprobar reto: "Crear tu primer proyecto" (id=2)
-        comprobarRetoCrearProyecto();
-
-        Toast.makeText(this, "Proyecto creado con éxito", Toast.LENGTH_SHORT).show();
-
-        // Volver a la pantalla anterior
-        finish();
-    }
-
-    /**
-     * Comprueba si se cumple el reto de crear el primer proyecto.
-     * El reto tiene id=2 según el orden de inserción en MainActivity.
-     */
-    private void comprobarRetoCrearProyecto() {
-        // Buscar el reto "Crear tu primer proyecto"
-        com.novacapital.models.Reto reto = db.retoDao().obtenerPorId(2);
-        if (reto != null && !reto.isCompletado()) {
-            // Solo se completa si es el primer proyecto
-            if (db.proyectoDao().contarProyectos() == 1) {
-                reto.setCompletado(true);
-                db.retoDao().actualizar(reto);
-
-                // Dar recompensa al usuario
-                com.novacapital.models.Usuario usuario = db.usuarioDao().obtenerUsuario();
-                usuario.setSaldoAurus(usuario.getSaldoAurus() + reto.getRecompensa());
-                db.usuarioDao().actualizar(usuario);
-
-                Toast.makeText(this,
-                    "🏆 Reto completado: +" + reto.getRecompensa() + " Aurus",
-                    Toast.LENGTH_LONG).show();
-            }
-        }
+        ApiService api = ApiClient.getService(ApiService.class, sessionManager.getToken());
+        api.crearProyecto(new ProyectoRequest(nombre, descripcion, categoria, objetivo))
+                .enqueue(new Callback<ProyectoResponse>() {
+                    @Override
+                    public void onResponse(Call<ProyectoResponse> call,
+                                           Response<ProyectoResponse> response) {
+                        if (response.isSuccessful()) {
+                            Toast.makeText(CrearProyectoActivity.this,
+                                    "Proyecto creado con éxito", Toast.LENGTH_SHORT).show();
+                            finish();
+                        } else {
+                            Toast.makeText(CrearProyectoActivity.this,
+                                    "Error al crear el proyecto", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                    @Override
+                    public void onFailure(Call<ProyectoResponse> call, Throwable t) {
+                        Toast.makeText(CrearProyectoActivity.this,
+                                "Error de conexión", Toast.LENGTH_SHORT).show();
+                    }
+                });
     }
 
     @Override
-    public boolean onSupportNavigateUp() {
-        finish();
-        return true;
-    }
+    public boolean onSupportNavigateUp() { finish(); return true; }
 }

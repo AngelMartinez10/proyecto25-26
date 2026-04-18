@@ -1,7 +1,7 @@
 {
     "logs": [
         {
-            "outputFile": "com.novacapital.app-mergeDebugResources-33:/values/values.xml",
+            "outputFile": "com.novacapital.app-mergeDebugResources-30:/values/values.xml",
             "map": [
                 {
                     "source": "C:\\Users\\angel\\.gradle\\caches\\8.10\\transforms\\611f9ab9ed9992c24f9ce47fefe8e214\\transformed\\cardview-1.0.0\\res\\values\\values.xml",
